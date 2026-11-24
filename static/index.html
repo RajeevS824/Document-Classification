@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document Page Classifier</title>
+<script>document.documentElement.dataset.theme=localStorage.getItem("theme")||"light"</script>
+<style>
+:root{--bg:#ffffff;--card:#ffffff;--ink:#14141f;--muted:#6b7280;--line:#ececec;--soft:#fafafa;--accent:#f97316;--accent-hover:#ea580c;--accent-soft:#fff1e6;--accent-ink:#ffffff;--ok:#16794a;--warn:#c2410c;--bad:#b42318}
+[data-theme="dark"]{--bg:#0f1115;--card:#171a21;--ink:#f3f4f6;--muted:#9ca3af;--line:#2a2f3a;--soft:#1c2029;--accent:#fb8a3c;--accent-hover:#f97316;--accent-soft:#2b1c10;--accent-ink:#1a1006;--ok:#4ade80;--warn:#fdba74;--bad:#f87171}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.5 Inter,system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:1180px;margin:0 auto;padding:34px 40px 60px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:26px}
+h1{font-size:34px;line-height:1.15;margin:0;font-weight:700;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:19px;margin-top:4px}
+.hdr-right{display:flex;align-items:center;gap:12px}
+.icon-btn{width:52px;height:50px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);display:grid;place-items:center;cursor:pointer}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent)}
+.pill{font-size:12px;padding:5px 11px;border-radius:999px;background:var(--soft);border:1px solid var(--line);color:var(--muted)}
+.pill.ready{color:var(--ok)}.pill.error,.pill.disabled{color:var(--warn)}.pill.loading{color:var(--accent)}
+.tabs{display:inline-flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:12px;margin-bottom:18px;background:var(--card)}
+.tabs button{border:0;background:none;color:var(--muted);padding:8px 18px;border-radius:9px;font:inherit;font-weight:500;cursor:pointer}
+.tabs button.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+section{display:none}section.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px 28px;margin-bottom:18px}
+h2{font-size:21px;margin:0 0 16px;font-weight:700}h3{font-size:13px;margin:26px 0 10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.drop{border:2px dashed var(--line);background:var(--soft);border-radius:16px;min-height:190px;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;color:var(--muted);cursor:pointer;transition:.15s}
+.drop strong{color:var(--ink);font-size:19px;font-weight:600}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.btn-line{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 20px;font:inherit;cursor:pointer}
+.btn-line:hover{border-color:var(--accent);color:var(--accent)}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:13px 24px;font:inherit;font-weight:600;cursor:pointer}
+.btn:hover:not(:disabled){background:var(--accent-hover)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}.row>.grow{flex:1;min-width:260px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 18px}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+input[type=text],input[type=number],input[type=password]{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit}
+input:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+.hint{font-size:13px;color:var(--muted);margin-top:8px}.small{font-size:12.5px;color:var(--muted)}
+.msg{font-size:14px;margin-top:10px}.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}
+.note{color:var(--muted);margin:16px 0 12px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);font-weight:600;font-size:12.5px}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:10px 0}.bar>i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.chip{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:99px;padding:3px 11px;margin:2px 5px 2px 0;font-size:12.5px;font-weight:500}
+.badge{font-size:11.5px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);margin-left:6px}.badge.done{color:var(--ok)}.badge.error{color:var(--bad)}.badge.running,.badge.queued,.badge.waiting_password{color:var(--accent)}.badge.failed{color:var(--bad)}.badge.skipped{color:var(--muted)}
+.pwbox{margin-top:12px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}input[readonly]{cursor:default}
+.st-REVIEW{color:var(--warn);font-weight:600}.st-LOW{color:var(--muted)}.st-HIGH{color:var(--ok)}.lab{font-weight:600}
+code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--soft);padding:1px 5px;border-radius:5px}
+details{margin-top:10px}summary{cursor:pointer;color:var(--accent);font-weight:500}a{color:var(--accent)}
+.foot{text-align:center;color:var(--muted);font-size:14px;margin-top:34px}
+#toast{position:fixed;right:22px;bottom:22px;background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none}#toast.show{opacity:1}
+@media (max-width:700px){.wrap{padding:22px 16px 50px}h1{font-size:26px}.sub{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1>Document Page Classifier</h1><div class="sub">Classify every page of a PDF and split it into folders by document type.</div></div>
+  <div class="hdr-right"><span id="modelPill" class="pill">checking model...</span>
+    <button class="icon-btn" id="themeBtn" title="Switch light / dark" aria-label="Switch light or dark theme"></button></div>
+</header>
+<nav id="tabs" class="tabs"><button data-t="process" class="active">Process</button><button data-t="config">Configuration</button></nav>
+<main>
+
+<section id="process" class="active">
+  <div class="card"><h2>Classify documents</h2>
+    <div id="drop" class="drop"><strong>Upload a file</strong><span>PDF, PNG, JPG, TIFF or DOCX &middot; one file at a time</span><span>Drag it here, or</span><span class="btn-line">Choose file</span>
+      <input id="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.docx" hidden></div>
+    <div id="fileList" class="small" style="margin-top:10px"></div>
+    <div class="row" style="margin-top:22px"><div class="grow"><label>Output folder (on this computer)</label><input type="text" id="outDir" readonly placeholder="No folder selected - click Browse"></div>
+      <button class="btn-line" id="browse">Browse...</button></div>
+    <div id="dirMsg" class="msg"></div>
+    <div class="note">A sub-folder named after the file is created in the output folder, with one folder per document type (for example <code>aadhaar/aadhaar_document.pdf</code>) and a document-wise <code>&lt;file name&gt;.json</code> next to it. PNG, JPG, TIFF and DOCX files are converted to PDF first. Password-protected PDF and Word files ask for the password.</div>
+    <button class="btn" id="start" disabled>Start classification</button> <span id="startMsg" class="msg"></span></div>
+  <h3>Progress &amp; results</h3><div id="jobList"></div>
+</section>
+
+<section id="config">
+  <div class="card"><h2>Configuration</h2>
+    <div class="grid">
+      <div><label>IMAGE_WEIGHT</label><input type="number" id="IMAGE_WEIGHT" step="0.05" min="0" max="1"></div>
+      <div><label>OCR_WEIGHT</label><input type="number" id="OCR_WEIGHT" step="0.05" min="0" max="1"></div>
+      <div><label>UNKNOWN_THRESHOLD</label><input type="number" id="UNKNOWN_THRESHOLD" step="0.05" min="0" max="1"></div>
+      <div><label>REVIEW_MARGIN</label><input type="number" id="REVIEW_MARGIN" step="0.01" min="0" max="1"></div>
+    </div>
+    <div class="hint">IMAGE_WEIGHT / OCR_WEIGHT: how much the image model and the OCR keywords count in the final score. UNKNOWN_THRESHOLD: a page whose best score is below this becomes UNKNOWN. REVIEW_MARGIN: if the top two types are closer than this, the page is marked REVIEW REQUIRED. Changes apply to the next job.</div>
+  </div>
+  <div class="row"><button class="btn" id="saveCfg">Save configuration</button><span id="cfgMsg" class="msg"></span></div>
+</section>
+</main>
+<p class="foot">Results are evidence for review, not a guarantee; check uncertain items manually.</p>
+</div>
+<div id="toast"></div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let CFG=null, CATS=null, tracked=[], files=[];
+const MOON='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+const SUN='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+function applyTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem("theme",t);$("#themeBtn").innerHTML=t==="dark"?SUN:MOON}
+$("#themeBtn").onclick=()=>applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
+applyTheme(document.documentElement.dataset.theme||"light");
+function updateStart(){$("#start").disabled=!(files.length&&$("#outDir").value.trim())}
+
+async function api(path,opts={}){
+  const r=await fetch(path,opts); let d=null; try{d=await r.json()}catch(e){}
+  if(!r.ok) throw new Error((d&&(d.detail||d.message))||("Request failed ("+r.status+")"));
+  return d;
+}
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2400)}
+const name=l=>(CATS.display[l]||l);
+
+/* ---------- tabs ---------- */
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  $$("#tabs button").forEach(x=>x.classList.toggle("active",x===b));
+  $$("main>section").forEach(s=>s.classList.toggle("active",s.id===b.dataset.t));
+});
+
+/* ---------- model status ---------- */
+async function pollHealth(){try{const h=await api("/api/health");const m=h.image_model;const p=$("#modelPill");
+  const txt={ready:"Image model: ready",loading:"Image model: loading...",disabled:"Image model: off (OCR keywords only)",error:"Image model: unavailable (OCR keywords only)",idle:"Image model: not loaded"}[m.state]||m.state;
+  p.textContent=txt;p.className="pill "+m.state;p.title=m.message||"";}catch(e){$("#modelPill").textContent="Backend not reachable"}}
+setInterval(pollHealth,4000);
+
+/* ---------- process tab ---------- */
+const EXT=[".pdf",".png",".jpg",".jpeg",".tif",".tiff",".docx"];
+const drop=$("#drop"),fileInput=$("#file");
+drop.onclick=()=>fileInput.click();
+["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>setFiles(e.dataTransfer.files)); fileInput.onchange=()=>setFiles(fileInput.files);
+function setFiles(fl){const arr=[...fl],m=$("#fileList");files=[];
+  if(arr.length>1){m.className="msg bad";m.textContent="Please upload one file at a time."}
+  else if(arr.length===1&&!EXT.some(x=>arr[0].name.toLowerCase().endsWith(x))){m.className="msg bad";m.textContent="Accepted formats: PDF, PNG, JPG, TIFF or DOCX."}
+  else if(arr.length===1){files=[arr[0]];m.className="small";m.innerHTML="&#128196; "+esc(arr[0].name)+" <span class='small'>("+(arr[0].size/1048576).toFixed(2)+" MB)</span>"}
+  else m.textContent="";
+  fileInput.value="";updateStart()}
+$("#browse").onclick=async()=>{const m=$("#dirMsg"),b=$("#browse");b.disabled=true;m.textContent="A folder window is opening on this computer...";m.className="msg";
+  try{const r=await api("/api/browse-folder",{method:"POST"});
+    if(r.path){$("#outDir").value=r.path;m.textContent=r.message+" ("+r.path+")";m.className="msg ok"}else{m.textContent=r.message;m.className="msg bad"}}
+  catch(e){m.textContent=e.message;m.className="msg bad"}finally{b.disabled=false;updateStart()}};
+$("#start").onclick=async()=>{const m=$("#startMsg");
+  if(!files.length){m.textContent="Choose a file.";m.className="msg bad";return}
+  if(!$("#outDir").value.trim()){m.textContent="Choose an output folder with Browse.";m.className="msg bad";return}
+  const fd=new FormData();fd.append("file",files[0]);fd.append("output_dir",$("#outDir").value.trim());
+  $("#start").disabled=true;m.textContent="Uploading...";m.className="msg";
+  try{const r=await api("/api/jobs",{method:"POST",body:fd});tracked.unshift(r.id);
+    m.textContent=r.status==="waiting_password"?"This file is password protected: enter its password below.":"Started.";m.className="msg ok";files=[];$("#fileList").textContent="";poll()}
+  catch(e){m.textContent=e.message;m.className="msg bad"}finally{updateStart()}};
+$("#jobList").addEventListener("click",async e=>{const go=e.target.closest(".pw-go"),sk=e.target.closest(".pw-skip");if(!go&&!sk)return;const id=(go||sk).dataset.id;
+  try{if(go){const inp=$(`.pw-input[data-id="${id}"]`);if(!inp.value){toast("Enter the password.");return}
+      await api(`/api/jobs/${id}/password`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:inp.value})});inp.value="";delete pwKeep[id]}
+    else await api(`/api/jobs/${id}/skip`,{method:"POST"});
+    poll()}catch(err){toast(err.message)}});
+$("#jobList").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.classList.contains("pw-input"))e.target.closest(".pwbox").querySelector(".pw-go").click()});
+const pwKeep={};
+function savePw(){$$(".pw-input").forEach(i=>pwKeep[i.dataset.id]={v:i.value,f:document.activeElement===i})}
+function restorePw(){$$(".pw-input").forEach(i=>{const k=pwKeep[i.dataset.id];if(k){i.value=k.v;if(k.f)i.focus()}})}
+
+const open_={};
+function statusClass(s){return s.startsWith("REVIEW")?"st-REVIEW":s.startsWith("HIGH")?"st-HIGH":s.startsWith("LOW")||s.startsWith("BLANK")?"st-LOW":""}
+function jobCard(j){
+  const pct=j.total_pages?Math.round(100*j.done_pages/j.total_pages):0;
+  let h=`<div class="card" data-id="${j.id}"><div class="row" style="justify-content:space-between"><div><b>${esc(j.filename)}</b> <span class="badge ${j.status}">${j.status.replace("_"," ")}</span>${j.converted_with?` <span class="small">converted to PDF (${esc(j.converted_with)})</span>`:""}</div><span class="small">${j.total_pages?j.done_pages+"/"+j.total_pages+" pages":""}${j.seconds?" &middot; "+j.seconds+" s":""}</span></div>`;
+  if(["queued","running","done"].includes(j.status))h+=`<div class="bar"><i style="width:${j.status==="done"?100:pct}%"></i></div>`;
+  if(j.status==="waiting_password")h+=`<div class="pwbox"><div>This file is password protected. Enter its password to continue.</div>
+    <div class="row" style="margin-top:10px"><div class="grow"><input type="password" class="pw-input" data-id="${j.id}" placeholder="Password" autocomplete="off"></div>
+    <button class="btn pw-go" data-id="${j.id}">Enter password</button><button class="btn-line pw-skip" data-id="${j.id}">Skip this file</button></div>
+    <div class="small" style="margin-top:8px">${j.tries_left} ${j.tries_left===1?"try":"tries"} left</div></div>`;
+  h+=Object.entries(j.counts||{}).map(([l,n])=>`<span class="chip">${esc(name(l))}: ${n}</span>`).join("");
+  if(j.error)h+=`<div class="msg bad">${esc(j.error)}</div>`;
+  if(j.status==="done"){
+    h+=`<h3>Output</h3><div class="small">Folder: <code>${esc(j.job_dir)}</code><br>JSON (document-wise): <code>${esc(j.json_report)}</code> &middot; <a href="/api/jobs/${j.id}/report">download</a></div>
+    <table><tr><th>Folder</th><th>File</th><th>Pages</th></tr>${(j.files||[]).map(f=>`<tr><td>${esc(f.folder)}</td><td><code>${esc(f.file)}</code></td><td>${f.pages.join(", ")}</td></tr>`).join("")}</table>`}
+  if((j.pages||[]).length){
+    h+=`<details ${open_[j.id]?"open":""} data-id="${j.id}"><summary>Page-by-page result (${j.pages.length})</summary><table><tr><th>Page</th><th>Result</th><th>Evidence score</th><th>Status</th><th>Note</th><th>Time</th></tr>`;
+    h+=j.pages.map(p=>`<tr><td>${p.page}</td><td class="lab">${esc(name(p.label))}</td><td>${(p.evidence_score*100).toFixed(1)}%</td><td class="${statusClass(p.status)}">${esc(p.status)}</td>
+      <td class="small">${esc(p.reason||"")}${p.matched&&Object.keys(p.matched).length?"<br>"+Object.entries(p.matched).slice(0,3).map(([l,m])=>esc(name(l))+": "+esc(Object.keys(m).slice(0,5).join(", "))).join("<br>"):""}${p.image_top&&p.image_top.length?"<br>image: "+esc(name(p.image_top[0][0]))+" "+(p.image_top[0][1]*100).toFixed(0)+"%":""}</td><td class="small">${(p.total_time||0).toFixed(1)}s</td></tr>`).join("");
+    h+=`</table></details>`}
+  return h+`</div>`}
+async function poll(){
+  const box=$("#jobList");let busy=false;
+  const list=[];for(const id of tracked){try{list.push(await api("/api/jobs/"+id))}catch(e){}}
+  savePw();box.innerHTML=list.map(jobCard).join("")||'<div class="small">No jobs yet.</div>';restorePw();
+  $$("details",box).forEach(d=>d.addEventListener("toggle",()=>open_[d.dataset.id]=d.open));
+  busy=list.some(j=>j.status==="queued"||j.status==="running"); if(busy)setTimeout(poll,1200)}
+
+/* ---------- configuration tab (4 values) ---------- */
+const CFG_KEYS=["IMAGE_WEIGHT","OCR_WEIGHT","UNKNOWN_THRESHOLD","REVIEW_MARGIN"];
+function bind(){CFG_KEYS.forEach(k=>$("#"+k).value=CFG[k])}
+$("#saveCfg").onclick=async()=>{const m=$("#cfgMsg"),body={};CFG_KEYS.forEach(k=>body[k]=parseFloat($("#"+k).value));
+  try{CFG=await api("/api/config",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});bind();
+    m.textContent="Saved. It applies to the next job.";m.className="msg ok";toast("Configuration saved")}catch(e){m.textContent=e.message;m.className="msg bad"}};
+
+/* ---------- init ---------- */
+updateStart();
+(async()=>{try{[CATS,CFG]=await Promise.all([api("/api/categories"),api("/api/config")]);bind();pollHealth();
+  try{const lf=await api("/api/last-folder");if(lf.path){$("#outDir").value=lf.path;updateStart()}}catch(e){}
+  const hist=await api("/api/jobs");const act=hist.filter(j=>["queued","running","waiting_password"].includes(j.status)).map(j=>j.id);if(act.length){tracked=act;poll()}}
+  catch(e){$("#startMsg").textContent="Cannot reach the backend: "+e.message;$("#startMsg").className="msg bad"}})();
+</script>
+</body>
+</html>
