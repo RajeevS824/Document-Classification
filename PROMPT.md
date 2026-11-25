@@ -18,7 +18,7 @@ Logistics: delivery_challan, eway_bill, lorry_receipt. Supporting: address_proof
 System labels: BLANK_PAGE, UNKNOWN, ERROR.
 
 ## Classification pipeline (per page, page-by-page)
-1. Render PDF page with PyMuPDF (configurable zoom). OCR with RapidOCR (onnxruntime). If OCR returns almost nothing but the page
+1. Render PDF page with PyMuPDF at 300 DPI. OCR with PP-OCRv6 medium detection and recognition models through ONNX Runtime. If OCR returns almost nothing but the page
    has ink, retry once after illumination normalisation.
 2. Blank rule: if OCR finds fewer than N characters (default 10) AND the page has almost no ink -> BLANK_PAGE.
 3. Normalise text (lower case, remove apostrophes, strip punctuation). Remove "ignore phrases" (regex, default

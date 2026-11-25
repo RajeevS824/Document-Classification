@@ -1,4 +1,4 @@
-"""Page classification engine: RapidOCR + weighted keywords (+ optional Nutrient v1 image model) -> final label."""
+"""Page classification engine: PP-OCRv6 + weighted keywords (+ optional Nutrient v1 image model) -> final label."""
 import json
 import logging
 import re
@@ -72,35 +72,91 @@ def normalise_illumination(rgb):
     return cv2.cvtColor(n, cv2.COLOR_GRAY2RGB)
 
 
-MAX_RENDER_PX = 3000        # longest side; an A4 page at zoom 2 is ~1700 px, so normal PDFs are unaffected
-
-
 def render_page(page, zoom):
-    longest = max(page.rect.width, page.rect.height) * zoom
-    if longest > MAX_RENDER_PX:                       # e.g. a large photo converted from JPG/TIFF
-        zoom = zoom * MAX_RENDER_PX / longest
     pix = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
     return Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
 
-# ------------------------------------------------------------------ OCR (RapidOCR, loaded once)
-_ocr = None
+# ------------------------------------------------------------------ PP-OCRv6 hybrid OCR (loaded once)
+PADDLE_OCRV6_DET = "PP-OCRv6_medium_det"
+PADDLE_OCRV6_REC = "PP-OCRv6_medium_rec"
+_detector = None
+_recognizer = None
 _ocr_lock = threading.Lock()
 
 
 def ocr_engine():
-    global _ocr
+    global _detector, _recognizer
     with _ocr_lock:
-        if _ocr is None:
-            from rapidocr_onnxruntime import RapidOCR
-            _ocr = RapidOCR(); log.info("RapidOCR loaded")
-    return _ocr
+        if _detector is None or _recognizer is None:
+            from paddleocr import TextDetection, TextRecognition
+            _detector = TextDetection(model_name=PADDLE_OCRV6_DET, engine="onnxruntime")
+            _recognizer = TextRecognition(model_name=PADDLE_OCRV6_REC, engine="onnxruntime")
+            log.info("PP-OCRv6 loaded: detector=%s, recognizer=%s", PADDLE_OCRV6_DET, PADDLE_OCRV6_REC)
+    return _detector, _recognizer
+
+
+def get_detection_polygons(result):
+    if hasattr(result, "json"):
+        result = result.json
+    if callable(result):
+        result = result()
+    if isinstance(result, dict):
+        result = result.get("res", result)
+        return result.get("dt_polys", [])
+    return []
+
+
+def sort_boxes(boxes):
+    boxes = list(boxes)
+    boxes.sort(key=lambda box: (
+        int(np.min(np.asarray(box)[:, 1]) // 15),
+        int(np.min(np.asarray(box)[:, 0]))
+    ))
+    return boxes
+
+
+def crop_text_region(image, polygon):
+    polygon = np.asarray(polygon, dtype=np.float32)
+    if polygon.ndim != 2 or polygon.shape[1] < 2 or polygon.size == 0:
+        return np.empty((0, 0, 3), dtype=image.dtype)
+    x_min = max(0, int(np.min(polygon[:, 0])))
+    y_min = max(0, int(np.min(polygon[:, 1])))
+    x_max = min(image.shape[1], int(np.max(polygon[:, 0])) + 1)
+    y_max = min(image.shape[0], int(np.max(polygon[:, 1])) + 1)
+    return image[y_min:y_max, x_min:x_max]
+
+
+def recognize_crop(recognizer, crop):
+    if crop is None or crop.size == 0:
+        return ""
+    result = recognizer.predict(input=crop)
+    if not result:
+        return ""
+    item = result[0]
+    if hasattr(item, "json"):
+        item = item.json
+    if callable(item):
+        item = item()
+    if isinstance(item, dict):
+        item = item.get("res", item)
+        return str(item.get("rec_text", "")).strip()
+    return ""
 
 
 def run_ocr(rgb):
-    result, _ = ocr_engine()(rgb)
-    lines = [{"text": str(r[1]), "confidence": float(r[2])} for r in (result or [])]
-    return "\n".join(l["text"] for l in lines), lines
+    detector, recognizer = ocr_engine()
+    image = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+    text_lines = []
+    detection_result = detector.predict(input=image)
+    for result in detection_result:
+        boxes = sort_boxes(get_detection_polygons(result))
+        for polygon in boxes:
+            crop = crop_text_region(image, polygon)
+            text = recognize_crop(recognizer, crop)
+            if text:
+                text_lines.append({"text": text, "confidence": None})
+    return "\n".join(line["text"] for line in text_lines), text_lines
 
 
 # ------------------------------------------------------------------ Nutrient v1 image model (optional, local, Apache-2.0)

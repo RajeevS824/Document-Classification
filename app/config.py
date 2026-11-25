@@ -23,7 +23,7 @@ DEFAULT_CONFIG = {
     "weights": {"image": 0.40, "ocr": 0.60},
     "thresholds": {"unknown": 0.35, "review_margin": 0.08, "high": 0.65, "medium": 0.40},
     "blank": {"min_chars": 10, "max_ink": 0.01, "require_low_ink": True},
-    "ocr": {"render_zoom": 2.0, "retry_on_failure": True},
+    "ocr": {"render_zoom": 300 / 72, "retry_on_failure": True},
     "image_model": {"enabled": True, "repo": "nutrientdocs/document-classification-v1", "device": "auto",
                     "skip_when_ocr_evidence": 0.0, "prompts": DEFAULT_IMAGE_PROMPTS},
     "ignore_phrases": DEFAULT_IGNORE_PHRASES,

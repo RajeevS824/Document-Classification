@@ -41,7 +41,7 @@ Logistics: Delivery Challan, E-Way Bill, Lorry Receipt | Supporting: Address Pro
 + system labels BLANK_PAGE, UNKNOWN, ERROR.
 
 ## How a page is decided
-1. RapidOCR reads the page (retries with lighting correction if it reads nothing on an inky page).
+1. PP-OCRv6 medium detection and recognition models read the page through ONNX Runtime (retries with lighting correction if it reads nothing on an inky page).
 2. **Blank rule**: fewer than `min_chars` characters (and almost no ink) -> BLANK_PAGE.
 3. Weighted whole-word keywords (after removing "Not a tax invoice"-type phrases).
 4. Optional Nutrient v1 image model (zero-shot, Apache-2.0, local). Fusion: 0.40 image + 0.60 OCR evidence.
